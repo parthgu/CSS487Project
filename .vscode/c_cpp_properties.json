@@ -1,0 +1,37 @@
+{
+  "configurations": [
+    {
+      "name": "Mac",
+
+      "includePath": [
+        "${workspaceFolder}/**",
+
+        "/opt/homebrew/Cellar/opencv/4.8.1_4/include/opencv4",
+
+        "/opt/homebrew/Cellar/opencv/4.8.1_4/include"
+      ],
+
+      "defines": [],
+
+      "macFrameworkPath": [],
+
+      "compilerPath": "/usr/bin/g++",
+
+      "cStandard": "c17",
+
+      "cppStandard": "c++17",
+
+      "intelliSenseMode": "clang-x64",
+
+      "browse": {
+        "path": ["/opt/homebrew/Cellar/opencv/4.8.1_4/include/opencv4"],
+
+        "limitSymbolsToIncludedHeaders": true,
+
+        "databaseFilename": ""
+      }
+    }
+  ],
+
+  "version": 4
+}
