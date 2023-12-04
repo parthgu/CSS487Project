@@ -54,6 +54,7 @@ int main(int argc, const char *argv[])
 		if (!video.read(img))
 		{
 			cerr << "Error: Could not read frame from camera." << endl;
+			video.release();
 			break;
 		}
 
@@ -73,7 +74,7 @@ int main(int argc, const char *argv[])
 			eyeCascade.detectMultiScale(faceROI, eyes, 1.1, 20, 0 | CASCADE_SCALE_IMAGE, Size(5, 5));
 
 			vector<Rect> smiles;
-			smileCascade.detectMultiScale(faceROI, smiles, 1.8, 15, 0 | CASCADE_SCALE_IMAGE, Size(80, 80));
+			smileCascade.detectMultiScale(faceROI, smiles, 1.1, 15, 0 | CASCADE_SCALE_IMAGE, Size(80, 80));
 
 			for (Rect &eye : eyes)
 			{
@@ -90,7 +91,7 @@ int main(int argc, const char *argv[])
 
 		imshow("Image", img);
 
-		if (waitKey(10) == 27) // Break the loop if the user presses the 'Esc' key (ASCII 27)
+		if (waitKey(50) == 27) // Break the loop if the user presses the 'Esc' key (ASCII 27)
 			break;
 	}
 
