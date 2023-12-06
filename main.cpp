@@ -10,6 +10,7 @@ int main(int argc, const char *argv[])
 {
 	Mat img;
 	Mat imgGray;
+	Mat teardrop = imread("teardrop.png", IMREAD_UNCHANGED);
 
 	string haarCascadePath = "haarcascade_frontalface_default.xml";
 	string smileCascadePath = "haarcascade_smile.xml";
@@ -79,6 +80,32 @@ int main(int argc, const char *argv[])
 			{
 				rectangle(img, face.tl() + eye.tl(), face.tl() + eye.br(), Scalar(255, 50, 50), 2);
 				putText(img, "Eye", face.tl() + eye.tl() - Point2i(-2, 5), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 50, 50), 2);
+
+				// Resize teardrop image to fit the size of the detected eye
+				Mat resizedTeardrop;
+				resize(teardrop, resizedTeardrop, eye.size());
+
+				// Get the region of interest (ROI) for the teardrop
+				Mat teardropROI(resizedTeardrop.rows, resizedTeardrop.cols, CV_8UC4, Scalar(0, 0, 0, 0));
+				resizedTeardrop(Rect(0, 0, resizedTeardrop.cols, resizedTeardrop.rows)).copyTo(teardropROI);
+
+				// Calculate the position to overlay the teardrop
+				Point teardropPosition = face.tl() + eye.tl() + Point(0, eye.height / 1.5);
+
+				// Overlay the teardrop onto the original image
+				for (int y = 0; y < teardropROI.rows; ++y)
+				{
+					for (int x = 0; x < teardropROI.cols; ++x)
+					{
+						Vec4b teardropPixel = teardropROI.at<Vec4b>(y, x);
+						if (teardropPixel[3] > 0) // Check the alpha channel
+						{
+							img.at<Vec3b>(teardropPosition.y + y, teardropPosition.x + x)[0] = teardropPixel[0];
+							img.at<Vec3b>(teardropPosition.y + y, teardropPosition.x + x)[1] = teardropPixel[1];
+							img.at<Vec3b>(teardropPosition.y + y, teardropPosition.x + x)[2] = teardropPixel[2];
+						}
+					}
+				}
 			}
 
 			for (Rect &smile : smiles)
