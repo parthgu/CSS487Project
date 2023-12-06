@@ -60,8 +60,7 @@ int main(int argc, const char *argv[])
 
 		vector<Rect> faces;
 		cvtColor(img, imgGray, COLOR_BGR2GRAY);
-		equalizeHist(imgGray, imgGray);
-		faceCascade.detectMultiScale(img, faces, 1.3, 5);
+		faceCascade.detectMultiScale(imgGray, faces, 1.3, 5);
 
 		for (Rect &face : faces)
 		{
