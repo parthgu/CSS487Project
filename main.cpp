@@ -13,6 +13,9 @@ int main(int argc, const char *argv[])
 	Mat teardrop = imread("teardrop.png", IMREAD_UNCHANGED);
 	Mat rainbowsmile = imread("rainbowsmile.png", IMREAD_UNCHANGED);
 
+	imshow("Teardrop", teardrop);
+	waitKey(0);
+
 	string haarCascadePath = "haarcascade_frontalface_default.xml";
 	string smileCascadePath = "haarcascade_smile.xml";
 	string eyeCascadePath = "haarcascade_eye.xml";
