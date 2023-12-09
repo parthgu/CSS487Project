@@ -1,9 +1,14 @@
+// 	Author: Dong Nguyen, Parth Gupta
+// 	Purpose: use opencv to detect human face, eyes, smile on local computer camera
+//	and get human emotion happy or sad base on collected faces
+//	finally, add filter base on human emotion
+// 	Prefix: local computer camera is not available or no face detected
+// 	Postfix: add filter tear below human eye when detect emotion sad
+//  add rainbow on mouth when detect happy
+
 #include <iostream>
-
 #include "opencv2/opencv.hpp"
-
 using namespace cv;
-
 using namespace std;
 
 int main(int argc, const char *argv[])
