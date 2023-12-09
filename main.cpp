@@ -16,93 +16,74 @@ string detectEmotion(const Mat &image)
 	cvtColor(image, imgGray, COLOR_BGR2GRAY);
 	*/
 	// Load the Haar Cascade classifier for face detection
-	std::string haarCascadePath = "haarcascade_frontalface_default.xml";
-	cv::CascadeClassifier faceCascade;
-	faceCascade.load(haarCascadePath);
 
-	// Detect faces in the image
-	vector<cv::Rect> faces;
-	faceCascade.detectMultiScale(image, faces, 1.3, 5);
+	// Create a new image specifically for the detected face
+	Mat faceImage = image.clone(); // Use clone to get a deep copy
 
-	// Check if at least one face is detected
-	if (!faces.empty())
+	int cropHeight = static_cast<int>(faceImage.rows * 0.5);
+	int cropWidth = static_cast<int>(faceImage.cols * 0.5);
+
+	// Define start and end positions for cropping
+	int x1 = faceImage.cols / 4;
+	int y1 = faceImage.rows - cropHeight + cropHeight / 2 - 10;
+	int x2 = faceImage.cols * 3 / 4;
+	int y2 = faceImage.rows - cropHeight / 4;
+	cv::Rect roiRect(x1, y1, x2, y2 - y1);
+
+	// Crop the adjusted face region from the face image
+	cv::Mat croppedBottomHalfFace = faceImage(roiRect).clone(); // Use clone to get a deep copy
+	////////////////////////////////RAY);
+	cv::GaussianBlur(croppedBottomHalfFace, croppedBottomHalfFace, cv::Size(5, 5), 0);
+	// Display the original image and the lines-detected image
+	// cv::imshow("Original Image", image);
+	// cv::waitKey(0);
+
+	// Display the original image and the cropped bottom half face
+	// cv::imshow("Original Image", image);
+	// resizeWindow("Cropped Bottom Half Face", 200, 200);
+	// cv::imshow("Cropped Bottom Half Face", croppedBottomHalfFace);
+
+	////////////////////////////////////////////////////////////////
+	commonBackground skinColor(faceImage);
+	Vec3i skin = skinColor.findCommonColor();
+
+	cout << "skin color: " << skin[2] << "," << skin[1] << "," << skin[0];
+
+	pair<int, int> top = {croppedBottomHalfFace.rows - 1, 0};
+	pair<int, int> left = {0, croppedBottomHalfFace.cols - 1};
+	pair<int, int> bottom = {0, 0};
+
+	for (int row = 0; row < croppedBottomHalfFace.rows; row++)
 	{
-		// Assume the first detected face as the region of interest (ROI)
-		Rect faceRect = faces[0];
-
-		// Create a new image specifically for the detected face
-		Mat faceImage = image(faceRect).clone(); // Use clone to get a deep copy
-
-		int cropHeight = static_cast<int>(faceImage.rows * 0.5);
-		int cropWidth = static_cast<int>(faceImage.cols * 0.5);
-
-		// Define start and end positions for cropping
-		int x1 = faceImage.cols / 4;
-		int y1 = faceImage.rows - cropHeight + cropHeight / 2 - 10;
-		int x2 = faceImage.cols * 3 / 4;
-		int y2 = faceImage.rows - cropHeight / 4;
-		cv::Rect roiRect(x1, y1, x2, y2 - y1);
-
-		// Crop the adjusted face region from the face image
-		cv::Mat croppedBottomHalfFace = faceImage(roiRect).clone(); // Use clone to get a deep copy
-		////////////////////////////////RAY);
-		cv::GaussianBlur(croppedBottomHalfFace, croppedBottomHalfFace, cv::Size(5, 5), 0);
-		// Display the original image and the lines-detected image
-		// cv::imshow("Original Image", image);
-		// cv::waitKey(0);
-
-		// Display the original image and the cropped bottom half face
-		// cv::imshow("Original Image", image);
-		// resizeWindow("Cropped Bottom Half Face", 200, 200);
-		// cv::imshow("Cropped Bottom Half Face", croppedBottomHalfFace);
-
-		////////////////////////////////////////////////////////////////
-		commonBackground skinColor(faceImage);
-		Vec3i skin = skinColor.findCommonColor();
-
-		cout << "skin color: " << skin[2] << "," << skin[1] << "," << skin[0];
-
-		pair<int, int> top = {croppedBottomHalfFace.rows - 1, 0};
-		pair<int, int> left = {0, croppedBottomHalfFace.cols - 1};
-		pair<int, int> bottom = {0, 0};
-
-		for (int row = 0; row < croppedBottomHalfFace.rows; row++)
+		for (int col = 0; col < croppedBottomHalfFace.cols; col++)
 		{
-			for (int col = 0; col < croppedBottomHalfFace.cols; col++)
+			Vec3b pixel = croppedBottomHalfFace.at<Vec3b>(row, col);
+			int blue = pixel[0];
+			int green = pixel[1];
+			int red = pixel[2];
+			if (
+				abs(blue - skin[0]) > 256 / 4 || abs(green - skin[1]) > 256 / 4 || abs(red - skin[2]) > 256 / 4)
 			{
-				Vec3b pixel = croppedBottomHalfFace.at<Vec3b>(row, col);
-				int blue = pixel[0];
-				int green = pixel[1];
-				int red = pixel[2];
-				if (
-					abs(blue - skin[0]) > 256 / 4 || abs(green - skin[1]) > 256 / 4 || abs(red - skin[2]) > 256 / 4)
-				{
 
-					if (row < top.first)
-						top.first = row;
-					if (row >= bottom.first)
-						bottom.first = row;
-					if (col <= left.second)
-					{
-						left.first = row;
-						left.second = col;
-					}
+				if (row < top.first)
+					top.first = row;
+				if (row >= bottom.first)
+					bottom.first = row;
+				if (col <= left.second)
+				{
+					left.first = row;
+					left.second = col;
 				}
 			}
 		}
+	}
 
-		cout << endl
-			 << "top: " << top.first << ", " << top.second << " left: " << left.first << ", " << left.second << " bottom: " << bottom.first << "," << bottom.second << endl;
-		if (abs(top.first - left.first) < abs(bottom.first - left.first))
-			return "happy";
-		else
-			return "sad";
-	}
+	cout << endl
+		 << "top: " << top.first << ", " << top.second << " left: " << left.first << ", " << left.second << " bottom: " << bottom.first << "," << bottom.second << endl;
+	if (abs(top.first - left.first) < abs(bottom.first - left.first))
+		return "happy";
 	else
-	{
-		std::cout << "No face detected in the image." << std::endl;
-		return "No face detected in the image.";
-	}
+		return "sad";
 }
 
 int main(int argc, const char *argv[])
@@ -243,8 +224,9 @@ int main(int argc, const char *argv[])
 			}
 			*/
 
-			Mat colorFaceRoi(faceROI.size(), CV_8UC3);
-			cvtColor(faceROI, colorFaceRoi, COLOR_GRAY2BGR);
+			Mat colorFaceRoi;
+			colorFaceRoi = img(face).clone();
+			// cvtColor(faceROI, colorFaceRoi, COLOR_GRAY2BGR);
 			cout << detectEmotion(colorFaceRoi) << endl;
 		}
 

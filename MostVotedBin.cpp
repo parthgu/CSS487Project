@@ -1,261 +1,91 @@
-#include <iostream>
-#include "MostVotedBin.cpp"
-#include "opencv2/opencv.hpp"
+// main.cpp
+// This code demonstrates practice of opencv syntax by overlay background image and edge detect image
+// Author: Dong Nguyen
 
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include "colorHistogram.cpp"
+#include <opencv2/imgproc.hpp>
 using namespace cv;
 
-using namespace std;
-
-string detectEmotion(const Mat& image) {
-	// Read an image
-	//cv::Mat image = cv::imread("angry5.jpg");
-
-	// Convert the image to grayscale
-	/*Mat imgGray;
-	cvtColor(image, imgGray, COLOR_BGR2GRAY);
-	*/
-	// Load the Haar Cascade classifier for face detection
-	std::string haarCascadePath = "haarcascade_frontalface_default.xml";
-	cv::CascadeClassifier faceCascade;
-	faceCascade.load(haarCascadePath);
-
-	// Detect faces in the image
-	vector<cv::Rect> faces;
-	faceCascade.detectMultiScale(image, faces, 1.3, 5);
-
-	// Check if at least one face is detected
-	if (!faces.empty()) {
-		// Assume the first detected face as the region of interest (ROI)
-		Rect faceRect = faces[0];
-
-		// Create a new image specifically for the detected face
-		Mat faceImage = image(faceRect).clone();  // Use clone to get a deep copy
-
-		int cropHeight = static_cast<int>(faceImage.rows * 0.5);
-		int cropWidth = static_cast<int>(faceImage.cols * 0.5);
-
-		// Define start and end positions for cropping
-		int x1 = faceImage.cols/4;
-		int y1 = faceImage.rows - cropHeight + cropHeight / 2-10;
-		int x2 = faceImage.cols*3/4;
-		int y2 = faceImage.rows- cropHeight / 4;
-		cv::Rect roiRect(x1, y1, x2, y2 - y1);
-
-
-		// Crop the adjusted face region from the face image
-		cv::Mat croppedBottomHalfFace = faceImage(roiRect).clone();  // Use clone to get a deep copy
-		////////////////////////////////RAY);
-		cv::GaussianBlur(croppedBottomHalfFace, croppedBottomHalfFace, cv::Size(5, 5), 0);
-		// Display the original image and the lines-detected image
-		//cv::imshow("Original Image", image);
-		//cv::waitKey(0);
-
-		// Display the original image and the cropped bottom half face
-		//cv::imshow("Original Image", image);
-		//resizeWindow("Cropped Bottom Half Face", 200, 200);
-		//cv::imshow("Cropped Bottom Half Face", croppedBottomHalfFace);
-		
-
-		////////////////////////////////////////////////////////////////
-		commonBackground skinColor(faceImage);
-		Vec3i skin = skinColor.findCommonColor();
-
-		cout <<"skin color: " << skin[2] << "," << skin[1] << "," << skin[0];
-
-		pair<int, int> top = { croppedBottomHalfFace.rows-1,0};
-		pair<int, int> left = { 0,croppedBottomHalfFace.cols - 1 };
-		pair<int, int> bottom = { 0,0 };
-
-		for (int row = 0; row < croppedBottomHalfFace.rows; row++) {
-			for (int col = 0; col < croppedBottomHalfFace.cols;col++) {
-				Vec3b pixel = croppedBottomHalfFace.at<Vec3b>(row, col);
-				int blue = pixel[0];
-				int green = pixel[1];
-				int red = pixel[2];
-				if (
-					abs(blue - skin[0]) > 256 / 4
-						|| abs(green - skin[1]) > 256 / 4
-						|| abs(red - skin[2]) > 256 / 4
-					) {
-
-					if (row < top.first) top.first = row;
-					if (row >= bottom.first) bottom.first = row;
-					if (col <= left.second) {
-						left.first = row;
-						left.second = col;
-					}
-				}
-			}
-		}
-
-		cout << endl << "top: " << top.first << ", " << top.second << " left: " << left.first << ", " << left.second << " bottom: " << bottom.first << "," << bottom.second << endl;
-		if (abs(top.first - left.first) < abs(bottom.first - left.first)) return "happy";
-		else return "sad";
-	}
-	else {
-		std::cout << "No face detected in the image." << std::endl;
-		return "No face detected in the image.";
-	}
-}
-
-int main(int argc, const char* argv[])
+class commonBackground
 {
-		Mat img;
-		Mat imgGray;
-		Mat teardrop = imread("teardrop.png", IMREAD_UNCHANGED);
-		Mat rainbowsmile = imread("rainbowsmile.png", IMREAD_UNCHANGED);
+public:
+	Mat foreImage;
+	commonBackground(Mat &foreImage)
+	{
+		this->foreImage = foreImage.clone();
+	}
 
-		string haarCascadePath = "haarcascade_frontalface_default.xml";
-		string smileCascadePath = "haarcascade_smile.xml";
-		string eyeCascadePath = "haarcascade_eye.xml";
-
-		CascadeClassifier faceCascade;
-		CascadeClassifier smileCascade;
-		CascadeClassifier eyeCascade;
-
-		smileCascade.load(smileCascadePath);
-		faceCascade.load(haarCascadePath);
-		eyeCascade.load(eyeCascadePath);
-
-		
-		VideoCapture video(0);
-
-		if (!video.isOpened())
+	// findMostVotedBin - finding the bin that has most vote in the input histogram
+	// precondition: hist is valid 3 dimension diagram
+	// postcondition: Return the most voted bin
+	Vec3i findMostVotedBin(const Mat &hist)
+	{
+		int max_count = 0;
+		Vec3i most_voted_bin;
+		// To store the bin indices with the maximum count
+		for (int blueDimension = 0; blueDimension < hist.size[0]; blueDimension++)
 		{
-			cerr << "Error: Could not open camera." << endl;
-			return -1;
-		}
-
-		if (faceCascade.empty())
-		{
-			cerr << "Error: Could not load face detector." << endl;
-			return -1;
-		}
-
-		if (smileCascade.empty())
-		{
-			cerr << "Error: Could not load smile detector." << endl;
-			return -1;
-		}
-
-		if (eyeCascade.empty())
-		{
-			cerr << "Error: Could not load eye detector." << endl;
-			return -1;
-		}
-
-		while (true)
-		{
-			if (!video.read(img))
+			for (int greenDimension = 0; greenDimension < hist.size[1]; greenDimension++)
 			{
-				cerr << "Error: Could not read frame from camera." << endl;
-				video.release();
-				break;
-			}
-
-
-			vector<Rect> faces;
-			cvtColor(img, imgGray, COLOR_BGR2GRAY);
-			faceCascade.detectMultiScale(imgGray, faces, 1.3, 5);
-
-			for (Rect& face : faces)
-			{
-				rectangle(img, face, Scalar(50, 50, 255), 3);
-				putText(img, "Face", face.tl() - Point2i(-2, 5), FONT_HERSHEY_SIMPLEX, 1, Scalar(50, 50, 255), 2);
-
-				Mat faceROI = imgGray(face);
-				
-				vector<Rect> eyes;
-				eyeCascade.detectMultiScale(faceROI, eyes, 1.1, 20, 0 | CASCADE_SCALE_IMAGE, Size(5, 5));
-
-				vector<Rect> smiles;
-				smileCascade.detectMultiScale(faceROI, smiles, 1.1, 50, 0 | CASCADE_SCALE_IMAGE, Size(80, 80));
-
-				for (Rect& eye : eyes)
+				for (int redDimension = 0; redDimension < hist.size[2]; redDimension++)
 				{
-					rectangle(img, face.tl() + eye.tl(), face.tl() + eye.br(), Scalar(255, 50, 50), 2);
-					putText(img, "Eye", face.tl() + eye.tl() - Point2i(-2, 5), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 50, 50), 2);
-
-					if (smiles.size() <= 0)
+					int bin_count = hist.at<int>(blueDimension, greenDimension, redDimension);
+					if (bin_count > max_count)
 					{
-						// Resize teardrop image to fit the size of the detected eye
-						Mat resizedTeardrop;
-						resize(teardrop, resizedTeardrop, eye.size());
-
-						// Get the region of interest (ROI) for the teardrop
-						Mat teardropROI(resizedTeardrop.rows, resizedTeardrop.cols, CV_8UC4, Scalar(0, 0, 0, 0));
-						resizedTeardrop(Rect(0, 0, resizedTeardrop.cols, resizedTeardrop.rows)).copyTo(teardropROI);
-
-						// Calculate the position to overlay the teardrop
-						Point teardropPosition = face.tl() + eye.tl() + Point(0, eye.height / 1.5);
-
-						// Overlay the teardrop onto the original image
-						for (int y = 0; y < teardropROI.rows; ++y)
-						{
-							for (int x = 0; x < teardropROI.cols; ++x)
-							{
-								Vec4b teardropPixel = teardropROI.at<Vec4b>(y, x);
-								if (teardropPixel[3] > 0) // Check the alpha channel
-								{
-									img.at<Vec3b>(teardropPosition.y + y, teardropPosition.x + x)[0] = teardropPixel[0];
-									img.at<Vec3b>(teardropPosition.y + y, teardropPosition.x + x)[1] = teardropPixel[1];
-									img.at<Vec3b>(teardropPosition.y + y, teardropPosition.x + x)[2] = teardropPixel[2];
-								}
-							}
-						}
+						max_count = bin_count;
+						most_voted_bin = Vec3i(blueDimension, greenDimension, redDimension); // Reversed order to match BGR
 					}
 				}
-				/*for (Rect& smile : smiles)
-				{
-					rectangle(img, face.tl() + smile.tl(), face.tl() + smile.br(), Scalar(50, 255, 50), 2);
-					putText(img, "Smile", face.tl() + smile.tl() - Point2i(-2, 5), FONT_HERSHEY_SIMPLEX, 1, Scalar(50, 255, 50), 2);
-
-					// Resize rainbowsmile image to fit the width of the detected smile
-					int resizedRainbowsmileWidth = smile.width;
-					int resizedRainbowsmileHeight = static_cast<int>((static_cast<float>(resizedRainbowsmileWidth) / rainbowsmile.cols) * rainbowsmile.rows);
-
-					Mat resizedRainbowsmile;
-					resize(rainbowsmile, resizedRainbowsmile, Size(resizedRainbowsmileWidth, resizedRainbowsmileHeight));
-
-					// Calculate the position to overlay the rainbowsmile at the center of the mouth
-					Point rainbowsmilePosition = face.tl() + smile.tl() + Point(smile.width / 2 - resizedRainbowsmile.cols / 2, (smile.height / 2 - resizedRainbowsmile.rows / 2) / 1.25);
-
-					// Overlay the rainbowsmile onto the original image with transparency
-					for (int y = 0; y < resizedRainbowsmile.rows; ++y)
-					{
-						for (int x = 0; x < resizedRainbowsmile.cols; ++x)
-						{
-							Vec4b rainbowsmilePixel = resizedRainbowsmile.at<Vec4b>(y, x);
-							if (rainbowsmilePixel[3] > 0) // Check the alpha channel
-							{
-								Vec3b& imgPixel = img.at<Vec3b>(rainbowsmilePosition.y + y, rainbowsmilePosition.x + x);
-								imgPixel[0] = static_cast<uchar>((rainbowsmilePixel[3] / 255.0) * rainbowsmilePixel[0] + (1.0 - rainbowsmilePixel[3] / 255.0) * imgPixel[0]);
-								imgPixel[1] = static_cast<uchar>((rainbowsmilePixel[3] / 255.0) * rainbowsmilePixel[1] + (1.0 - rainbowsmilePixel[3] / 255.0) * imgPixel[1]);
-								imgPixel[2] = static_cast<uchar>((rainbowsmilePixel[3] / 255.0) * rainbowsmilePixel[2] + (1.0 - rainbowsmilePixel[3] / 255.0) * imgPixel[2]);
-							}
-						}
-					}
-				}
-				*/
-
-				Mat colorFaceRoi;
-				colorFaceRoi = img(face).clone();
-				//cvtColor(faceROI, colorFaceRoi, COLOR_GRAY2BGR);
-				cout << detectEmotion(colorFaceRoi)<<endl;
 			}
-
-			imshow("Image", img);
-
-			if (waitKey(50) == 27) // Break the loop if the user presses the 'Esc' key (ASCII 27)
-				break;
 		}
 
-		video.release();
+		return most_voted_bin;
+	}
 
-		/*Mat image = imread("image1.jpg");
-		cout << detectEmotion(image);
-		return 0;*/
-	
-}
+	// main - exercise overlay background image and edge detection image
+	// precondition: foreground.jpg exists and background.jpg in the code directory and is a valid JPG
+	// postconditions: The original and sharpened images are displayed on the screen
+	//					Create the image that is overlay version of foreground.jpg by background.jpg
+	//					Display that image on the screen and written it to the disk as overlay.jpg
+	//					Also horizontally flip, convert to gray scale, smooth and edge detect background.jpg
+	//					Display the result after edge detect on the screen and write it on disk as output.jpg
+	//					Also create a resize and rotate 90 degree in clockwise version of foreground.jpg
+	//					Display the resize, rotate version on the screen and write it on disk as myoutput.jpg
+	//					Note: waits for a key press between each image display
 
+	Vec3i findCommonColor()
+	{
+		// Mat foreImage = imread("foreground.jpg");
+		// Mat backgroundImage = imread("background.jpg");
 
+		int bucketSize = 256 / 4;
+		int dims[] = {4, 4, 4};
+		Mat hist(3, dims, CV_32S, Scalar::all(0));
+
+		for (int row = 0; row < foreImage.rows; row++)
+		{
+			for (int col = 0; col < foreImage.cols; col++)
+			{
+
+				Vec3b pixel = foreImage.at<Vec3b>(row, col);
+				int r = pixel[2] / bucketSize;
+				int g = pixel[1] / bucketSize;
+				int b = pixel[0] / bucketSize;
+
+				hist.at<int>(b, g, r) += 1;
+			}
+		}
+
+		Vec3i most_voted_bin = findMostVotedBin(hist);
+
+		int cRed = most_voted_bin[2] * bucketSize + bucketSize / 2;
+		int cGreen = most_voted_bin[1] * bucketSize + bucketSize / 2;
+		int cBlue = most_voted_bin[0] * bucketSize + bucketSize / 2;
+
+		Vec3i binColor = Vec3i(cBlue, cGreen, cRed);
+
+		return binColor;
+	}
+};
