@@ -1,5 +1,5 @@
-// 	Author: Dong Nguyen, Parth Gupta
-// 	Purpose: use opencv to detect human face, eyes, smile on local computer camera
+// 	Author: Dong Nguyen, Parth Gupta, Ka Hin Choi
+// 	Purpose: use opencv to detect human face, eyes, smile on video stream
 //	and get human emotion happy or sad base on collected faces
 //	finally, add filter base on human emotion
 // 	Prefix: local computer camera is not available or no face detected
@@ -25,13 +25,13 @@ int main(int argc, const char *argv[])
 	CascadeClassifier faceCascade;
 	CascadeClassifier smileCascade;
 	CascadeClassifier eyeCascade;
-
+	// loading cascade
 	smileCascade.load(smileCascadePath);
 	faceCascade.load(haarCascadePath);
 	eyeCascade.load(eyeCascadePath);
 
 	VideoCapture video(1);
-
+	// check if video and cascade works
 	if (!video.isOpened())
 	{
 		cerr << "Error: Could not open camera." << endl;
@@ -55,7 +55,7 @@ int main(int argc, const char *argv[])
 		cerr << "Error: Could not load eye detector." << endl;
 		return -1;
 	}
-
+	// open stream video
 	while (true)
 	{
 		if (!video.read(img))
@@ -68,7 +68,7 @@ int main(int argc, const char *argv[])
 		vector<Rect> faces;
 		cvtColor(img, imgGray, COLOR_BGR2GRAY);
 		faceCascade.detectMultiScale(imgGray, faces, 1.3, 5);
-
+		// detecting faces
 		for (Rect &face : faces)
 		{
 			rectangle(img, face, Scalar(50, 50, 255), 3);
@@ -81,7 +81,7 @@ int main(int argc, const char *argv[])
 
 			vector<Rect> smiles;
 			smileCascade.detectMultiScale(faceROI, smiles, 1.1, 50, 0 | CASCADE_SCALE_IMAGE, Size(80, 80));
-
+			// detect eyes
 			for (Rect &eye : eyes)
 			{
 				rectangle(img, face.tl() + eye.tl(), face.tl() + eye.br(), Scalar(255, 50, 50), 2);
